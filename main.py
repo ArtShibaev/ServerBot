@@ -38,7 +38,7 @@ async def command_start_handler(message: Message) -> None:
 @dp.callback_query(F.data == 'reboot')
 async def backups(callback: types.CallbackQuery):
     await callback.message.answer('Выполняется перезагрузка сервера...')
-    ssh.send('shutdown -r now\n')
+    ssh.send('reboot now\n')
     time.sleep(20)
     await callback.message.answer('Сервер успешно перезагужен')
 
