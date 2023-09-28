@@ -22,7 +22,7 @@ def default_keyboard():
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text='🔴 Остановить процесс', callback_data='empty'))
     builder.row(types.InlineKeyboardButton(text='🆙 Аптайм', callback_data='empty'))
-    builder.row(types.InlineKeyboardButton(text='🔄 Перезагрузить сервер', callback_data='empty'))
+    builder.row(types.InlineKeyboardButton(text='🔄 Перезагрузить сервер', callback_data='reboot'))
     builder.row(types.InlineKeyboardButton(text='🗂️ Бэкапы', callback_data='backups'))
     builder.row(types.InlineKeyboardButton(text='🔑 Сбросить пароль администратора', callback_data='empty'))
     builder.adjust(2, 2)
@@ -33,6 +33,14 @@ def default_keyboard():
 async def command_start_handler(message: Message) -> None:
     await message.answer(f'Этот бот позволяет контролировать корректность работы сервера.\n'
                          f'Для взаимодействия используй кнопки ниже.', reply_markup=default_keyboard())
+
+
+@dp.callback_query(F.data == 'reboot')
+async def backups(callback: types.CallbackQuery):
+    await callback.message.answer('Выполняется перезагрузка сервера...')
+    ssh.send('reboot now\n')
+    time.sleep(20)
+    await callback.message.answer('Сервер успешно перезагужен')
 
 
 @dp.callback_query(F.data == 'backups')
