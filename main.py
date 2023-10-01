@@ -21,7 +21,7 @@ ssh = client.invoke_shell()
 def default_keyboard():
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text='🔴 Остановить процесс', callback_data='empty'))
-    builder.row(types.InlineKeyboardButton(text='🆙 Аптайм', callback_data='empty'))
+    builder.row(types.InlineKeyboardButton(text='🆙 Аптайм', callback_data='uptime'))
     builder.row(types.InlineKeyboardButton(text='🔄 Перезагрузить сервер', callback_data='empty'))
     builder.row(types.InlineKeyboardButton(text='🗂️ Бэкапы', callback_data='backups'))
     builder.row(types.InlineKeyboardButton(text='🔑 Сбросить пароль администратора', callback_data='empty'))
@@ -58,12 +58,9 @@ async def new_backup(callback: types.CallbackQuery):
     time.sleep(1)
     ssh.send('rm -r movies_website\n')
     time.sleep(1)
-    print(ssh.recv(3000))
     ssh.send('cd ~/backup\n')
     time.sleep(1)
-    print(ssh.recv(3000))
     ssh.send('npm install\n')
-    print(ssh.recv(3000))
     time.sleep(1)
     ssh.send('mv ~/backup ~/movies_website\n')
     time.sleep(7)
@@ -71,6 +68,19 @@ async def new_backup(callback: types.CallbackQuery):
     time.sleep(1)
     ssh.send('pm2 start app.js --name "movies_website" --watch && pm2 save\n')
     await callback.message.answer('Восстановлено из резервной копии\nПроцесс перезапущен')
+
+
+@dp.callback_query(F.data == 'uptime')
+async def uptime(callback: types.CallbackQuery):
+    stdin, stdout, stderr = client.exec_command('pm2 status')
+    pm2_status_output = stdout.read().decode('utf-8')
+    lines = pm2_status_output.strip().split('\n')
+    cleaned_output = [line for line in lines if not (line.startswith('┌') or line.startswith('├') or line.startswith('└'))]
+    header = cleaned_output[0].split('│')[1:-1]
+    data = cleaned_output[1].split('│')[1:-1]
+    key_value_dict = {h.strip(): d.strip() for h, d in zip(header, data)}
+    formatted_str = '\n'.join([f"{k}: {v}" for k, v in key_value_dict.items()])
+    await callback.message.answer(f'<pre>{formatted_str}</pre>')
 
 
 @dp.callback_query(F.data == 'go_back')
