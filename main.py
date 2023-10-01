@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 dp = Dispatcher()
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-client.connect(hostname='194.32.248.209', username="root", password="7FbwA9tiNw", look_for_keys=False, allow_agent=False)
+client.connect(hostname='194.32.248.209', username="root", password="opxAj0iB8R", look_for_keys=False, allow_agent=False)
 ssh = client.invoke_shell()
 
 
@@ -91,7 +91,7 @@ async def backups(callback: types.CallbackQuery):
 
 
 async def main() -> None:
-    bot = Bot(token='6485242380:AAFlF7Ywcy6W4tl6nsQ1PDdNaVtRWVxLl9g', parse_mode=ParseMode.HTML)
+    bot = Bot(token='6485242380:AAEWC26XKA8qMqneTYjw35GByXSW629Rj0Q', parse_mode=ParseMode.HTML)
     await dp.start_polling(bot)
 
 
