@@ -80,7 +80,9 @@ async def uptime(callback: types.CallbackQuery):
     data = cleaned_output[1].split('│')[1:-1]
     key_value_dict = {h.strip(): d.strip() for h, d in zip(header, data)}
     formatted_str = '\n'.join([f"{k}: {v}" for k, v in key_value_dict.items()])
-    await callback.message.answer(f'<pre>{formatted_str}</pre>')
+    builder = InlineKeyboardBuilder()
+    builder.row(types.InlineKeyboardButton(text='⬅️ Назад', callback_data='go_back'))
+    await callback.message.edit_text(f'<pre>{formatted_str}</pre>', reply_markup=builder.as_markup())
 
 
 @dp.callback_query(F.data == 'go_back')
