@@ -18,9 +18,21 @@ client.connect(hostname='194.32.248.209', username="root", password="opxAj0iB8R"
 ssh = client.invoke_shell()
 
 
-def default_keyboard():
+def get_process_status():
+    ssh.send('pm2 status\n')
+    time.sleep(1)
+    response = str(ssh.recv(3000))
+    return 'running' if all(x in response for x in ['movies_website', 'online']) else 'stopped'
+
+
+def default_keyboard(process_old_status=''):
     builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text='🔴 Остановить процесс', callback_data='empty'))
+    if not process_old_status:
+        builder.row(types.InlineKeyboardButton(text='🔴 Остановить процесс' if get_process_status() == 'running' else '🟢 Запустить процесс', callback_data='manage_process'))
+    elif process_old_status == 'running':
+        builder.row(types.InlineKeyboardButton(text='🟢 Запустить процесс',callback_data='manage_process'))
+    elif process_old_status == 'stopped':
+        builder.row(types.InlineKeyboardButton(text='🔴 Остановить процесс', callback_data='manage_process'))
     builder.row(types.InlineKeyboardButton(text='🆙 Аптайм', callback_data='uptime'))
     builder.row(types.InlineKeyboardButton(text='🔄 Перезагрузить сервер', callback_data='empty'))
     builder.row(types.InlineKeyboardButton(text='🗂️ Бэкапы', callback_data='backups'))
@@ -32,7 +44,7 @@ def default_keyboard():
 @dp.message(CommandStart())
 async def command_start_handler(message: Message) -> None:
     await message.answer(f'Этот бот позволяет контролировать корректность работы сервера.\n'
-                         f'Для взаимодействия используй кнопки ниже.', reply_markup=default_keyboard())
+                              f'Для взаимодействия используй кнопки ниже.', reply_markup=default_keyboard())
 
 
 @dp.callback_query(F.data == 'backups')
@@ -83,6 +95,18 @@ async def uptime(callback: types.CallbackQuery):
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text='⬅️ Назад', callback_data='go_back'))
     await callback.message.edit_text(f'<pre>{formatted_str}</pre>', reply_markup=builder.as_markup())
+
+
+@dp.callback_query(F.data == 'manage_process')
+async def manage_process(callback: types.CallbackQuery):
+    status = get_process_status()
+    if status == 'running':
+        ssh.send('pm2 stop 0\n')
+        await callback.answer('Процесс остановлен', show_alert=True)
+    elif status == 'stopped':
+        ssh.send('pm2 start 0 --watch\n')
+        await callback.answer('Процесс запущен', show_alert=True)
+    await callback.message.edit_reply_markup(str(callback.message.message_id), reply_markup=default_keyboard(status))
 
 
 @dp.callback_query(F.data == 'go_back')
