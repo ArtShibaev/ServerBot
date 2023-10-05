@@ -1,20 +1,25 @@
-import os
-import logging
 import asyncio
-from aiogram import Bot, Dispatcher, types
+import logging
+import random
+import string
+import time
+
+import paramiko
+
+from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram import F
-import paramiko
-import time
+
+ssh_user = 'root'
 
 logging.basicConfig(level=logging.INFO)
 dp = Dispatcher()
+bot = Bot(token='6485242380:AAEWC26XKA8qMqneTYjw35GByXSW629Rj0Q', parse_mode=ParseMode.HTML)
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-client.connect(hostname='194.32.248.209', username="root", password="opxAj0iB8R", look_for_keys=False, allow_agent=False)
+client.connect(hostname='194.32.248.209', username=ssh_user, password='opxAj0iB8R', look_for_keys=False, allow_agent=False)
 ssh = client.invoke_shell()
 
 
@@ -30,13 +35,13 @@ def default_keyboard(process_old_status=''):
     if not process_old_status:
         builder.row(types.InlineKeyboardButton(text='🔴 Остановить процесс' if get_process_status() == 'running' else '🟢 Запустить процесс', callback_data='manage_process'))
     elif process_old_status == 'running':
-        builder.row(types.InlineKeyboardButton(text='🟢 Запустить процесс',callback_data='manage_process'))
+        builder.row(types.InlineKeyboardButton(text='🟢 Запустить процесс', callback_data='manage_process'))
     elif process_old_status == 'stopped':
         builder.row(types.InlineKeyboardButton(text='🔴 Остановить процесс', callback_data='manage_process'))
     builder.row(types.InlineKeyboardButton(text='🆙 Аптайм', callback_data='uptime'))
-    builder.row(types.InlineKeyboardButton(text='🔄 Перезагрузить сервер', callback_data='empty'))
+    builder.row(types.InlineKeyboardButton(text='🔄 Перезагрузить сервер', callback_data='reboot'))
     builder.row(types.InlineKeyboardButton(text='🗂️ Бэкапы', callback_data='backups'))
-    builder.row(types.InlineKeyboardButton(text='🔑 Сбросить пароль администратора', callback_data='empty'))
+    builder.row(types.InlineKeyboardButton(text='🔑 Сбросить пароль администратора', callback_data='reset_password'))
     builder.adjust(2, 2)
     return builder.as_markup()
 
@@ -44,7 +49,7 @@ def default_keyboard(process_old_status=''):
 @dp.message(CommandStart())
 async def command_start_handler(message: Message) -> None:
     await message.answer(f'Этот бот позволяет контролировать корректность работы сервера.\n'
-                              f'Для взаимодействия используй кнопки ниже.', reply_markup=default_keyboard())
+                         f'Для взаимодействия используй кнопки ниже.', reply_markup=default_keyboard())
 
 
 @dp.callback_query(F.data == 'backups')
@@ -91,7 +96,7 @@ async def uptime(callback: types.CallbackQuery):
     header = cleaned_output[0].split('│')[1:-1]
     data = cleaned_output[1].split('│')[1:-1]
     key_value_dict = {h.strip(): d.strip() for h, d in zip(header, data)}
-    formatted_str = '\n'.join([f"{k}: {v}" for k, v in key_value_dict.items()])
+    formatted_str = '\n'.join([f'{k}: {v}' for k, v in key_value_dict.items()])
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text='⬅️ Назад', callback_data='go_back'))
     await callback.message.edit_text(f'<pre>{formatted_str}</pre>', reply_markup=builder.as_markup())
@@ -112,15 +117,30 @@ async def manage_process(callback: types.CallbackQuery):
 @dp.callback_query(F.data == 'go_back')
 async def backups(callback: types.CallbackQuery):
     await callback.message.edit_text(f'Этот бот позволяет контролировать корректность работы сервера.\n'
-                                    f'Для взаимодействия используй кнопки ниже.')
+                                     f'Для взаимодействия используй кнопки ниже.')
     await callback.message.edit_reply_markup(str(callback.message.message_id), reply_markup=default_keyboard())
 
 
+@dp.callback_query(F.data == 'reset_password')
+async def handle_password_reset(callback: types.CallbackQuery):
+    y = string.ascii_letters + string.digits + string.punctuation
+    password = ''.join(random.choice(y) for _ in range(8))
+    # ssh.send(f'echo "{password}" | passwd --stdin {ssh_user}')  # Это если захотим делать замену пароля
+    await callback.message.reply(f'Пароль изменён: <code>{password}</code>')
+    await callback.message.edit_reply_markup(str(callback.message.message_id), reply_markup=default_keyboard())
+
+
+@dp.callback_query(F.data == 'reboot')
+async def handle_password_reset(callback: types.CallbackQuery):
+    ssh.send('reboot now\n')
+    await callback.answer('Сервер перезагружается', show_alert=True)
+    await callback.message.edit_reply_markup(str(callback.message.message_id), reply_markup=default_keyboard(process_old_status='running'))
+
+
 async def main() -> None:
-    bot = Bot(token='6485242380:AAEWC26XKA8qMqneTYjw35GByXSW629Rj0Q', parse_mode=ParseMode.HTML)
     await dp.start_polling(bot)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     asyncio.run(main())
