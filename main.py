@@ -16,6 +16,7 @@ ssh_user = 'root'
 
 logging.basicConfig(level=logging.INFO)
 dp = Dispatcher()
+bot = Bot(token='6485242380:AAEWC26XKA8qMqneTYjw35GByXSW629Rj0Q', parse_mode=ParseMode.HTML)
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 client.connect(hostname='194.32.248.209', username=ssh_user, password='opxAj0iB8R', look_for_keys=False, allow_agent=False)
@@ -40,7 +41,7 @@ def default_keyboard(process_old_status=''):
     builder.row(types.InlineKeyboardButton(text='🆙 Аптайм', callback_data='uptime'))
     builder.row(types.InlineKeyboardButton(text='🔄 Перезагрузить сервер', callback_data='reboot'))
     builder.row(types.InlineKeyboardButton(text='🗂️ Бэкапы', callback_data='backups'))
-    builder.row(types.InlineKeyboardButton(text='🔑 Сбросить пароль администратора', callback_data='password'))
+    builder.row(types.InlineKeyboardButton(text='🔑 Сбросить пароль администратора', callback_data='reset_password'))
     builder.adjust(2, 2)
     return builder.as_markup()
 
@@ -120,24 +121,23 @@ async def backups(callback: types.CallbackQuery):
     await callback.message.edit_reply_markup(str(callback.message.message_id), reply_markup=default_keyboard())
 
 
-@dp.callback_query(F.data == 'password')
+@dp.callback_query(F.data == 'reset_password')
 async def handle_password_reset(callback: types.CallbackQuery):
     y = string.ascii_letters + string.digits + string.punctuation
     password = ''.join(random.choice(y) for _ in range(8))
     # ssh.send(f'echo "{password}" | passwd --stdin {ssh_user}')  # Это если захотим делать замену пароля
-    await callback.answer(f'Пароль изменён: {password}', show_alert=True)
+    await callback.message.reply(f'Пароль изменён: <code>{password}</code>')
     await callback.message.edit_reply_markup(str(callback.message.message_id), reply_markup=default_keyboard())
 
 
 @dp.callback_query(F.data == 'reboot')
 async def handle_password_reset(callback: types.CallbackQuery):
-    # ssh.send('reboot')  # Чтобы не отвалилось ничего
-    await callback.answer('Сервер отправлен на перезагрузку', show_alert=True)
-    await callback.message.edit_reply_markup(str(callback.message.message_id), reply_markup=default_keyboard())
+    ssh.send('reboot now\n')
+    await callback.answer('Сервер перезагружается', show_alert=True)
+    await callback.message.edit_reply_markup(str(callback.message.message_id), reply_markup=default_keyboard(process_old_status='running'))
 
 
 async def main() -> None:
-    bot = Bot(token='6485242380:AAEWC26XKA8qMqneTYjw35GByXSW629Rj0Q', parse_mode=ParseMode.HTML)
     await dp.start_polling(bot)
 
 
