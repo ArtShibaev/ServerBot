@@ -137,7 +137,18 @@ async def handle_password_reset(callback: types.CallbackQuery):
     await callback.message.edit_reply_markup(str(callback.message.message_id), reply_markup=default_keyboard(process_old_status='running'))
 
 
+async def check_status():
+    while True:
+        ssh.send('pm2 status\n')
+        time.sleep(1)
+        response = str(ssh.recv(3000))
+        if 'errored' in response:
+            await bot.send_message(422904706, 'В процессе возникла ошибка')
+        time.sleep(30)
+
+
 async def main() -> None:
+    await check_status()
     await dp.start_polling(bot)
 
 
