@@ -49,8 +49,14 @@ def default_keyboard(process_old_status=''):
 @dp.message(CommandStart())
 async def command_start_handler(message: Message) -> None:
     await message.answer(f'Этот бот позволяет контролировать корректность работы сервера.\n'
-                         f'Для взаимодействия используй кнопки ниже.', reply_markup=default_keyboard())
-
+                     f'Для взаимодействия используй кнопки ниже.', reply_markup=default_keyboard())
+    stdin, stdout, stderr = client.exec_command('pm2 status')
+    pm2_status_output = stdout.read().decode('utf-8')
+    lines = pm2_status_output.strip().split('\n')
+    cleaned_output = ''.join([line for line in lines if not (line.startswith('┌') or line.startswith('├') or line.startswith('└'))])
+    print('errored' in cleaned_output)
+    if 'errored' in cleaned_output:
+        await bot.send_message(422904706, 'В процессе возникла ошибка')
 
 @dp.callback_query(F.data == 'backups')
 async def backups(callback: types.CallbackQuery):
@@ -137,18 +143,8 @@ async def handle_password_reset(callback: types.CallbackQuery):
     await callback.message.edit_reply_markup(str(callback.message.message_id), reply_markup=default_keyboard(process_old_status='running'))
 
 
-async def check_status():
-    while True:
-        ssh.send('pm2 status\n')
-        time.sleep(1)
-        response = str(ssh.recv(3000))
-        if 'errored' in response:
-            await bot.send_message(422904706, 'В процессе возникла ошибка')
-        time.sleep(30)
-
 
 async def main() -> None:
-    await check_status()
     await dp.start_polling(bot)
 
 
