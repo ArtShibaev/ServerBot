@@ -16,7 +16,7 @@ ssh_user = 'root'
 
 logging.basicConfig(level=logging.INFO)
 dp = Dispatcher()
-bot = Bot(token='6485242380:AAEWC26XKA8qMqneTYjw35GByXSW629Rj0Q', parse_mode=ParseMode.HTML)
+bot = Bot(token='BOT TOKEN', parse_mode=ParseMode.HTML)
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 client.connect(hostname='194.32.248.209', username=ssh_user, password='opxAj0iB8R', look_for_keys=False, allow_agent=False)
